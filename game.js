@@ -24,11 +24,10 @@ let aliens = [];
 let lasers = [];
 let explosions = [];
 
-// Track coordinates using fractional percentages (0.0 -> 1.0) for platform scaling
 let localPlayer = { x: 0.5, y: 0.5, fist: false, cooldown: false, active: false };
 let remotePlayer = { x: 0.5, y: 0.5, fist: false, active: false };
 
-// --- RETRO P2P INSTRUMENT GENERATOR ---
+// Audio System
 let audioCtx = null;
 function initAudio() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -48,55 +47,72 @@ function playSound(type) {
     }
 }
 
-// --- PEERJS ROOM NETWORKING INFRASTRUCTURE ---
-function setupNetwork() {
-    // Connect to free, secure public cloud matchmaking pipeline
-    peer = new Peer();
-    
-    peer.on('open', (id) => {
-        // Create an easy 4-character room code from your connection ID
-        const shortCode = id.slice(0, 4).toUpperCase();
-        peer._shortCode = shortCode;
-        networkStatus.innerText = "CONNECTED TO LOGISTICS RADAR.";
-        hostBtn.disabled = false;
-        joinBtn.disabled = false;
-    });
-
-    // Host handling Incoming Guests
-    peer.on('connection', (incomingConn) => {
-        if (conn) return; // Room full
-        conn = incomingConn;
-        isHost = true;
-        setupChatLink();
-    });
+// Generate unique 4-character room code
+function generateRoomCode() {
+    const chars = '0123456789ABCDEF';
+    let code = '';
+    for (let i = 0; i < 4; i++) {
+        code += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return code;
 }
 
+function setupNetwork() {
+    networkStatus.innerText = "READY TO HOST OR JOIN.";
+    hostBtn.disabled = false;
+    joinBtn.disabled = false;
+}
+
+// HOST A NEW GAME
 hostBtn.addEventListener('click', () => {
     initAudio();
     isHost = true;
-    vsBanner.innerText = `ROOM: ${peer._shortCode}`;
-    networkStatus.innerText = `ROOM CREATED! CODE: ${peer._shortCode}. AWAITING PLAYER 2...`;
-    hostBtn.disabled = true;
-    joinBtn.disabled = true;
+    const roomCode = generateRoomCode();
+    vsBanner.innerText = `ROOM: ${roomCode}`;
+    networkStatus.innerText = "CREATING LOBBY...";
+
+    // Direct ID mapping fix for PeerJS cloud stability
+    peer = new Peer(`ar-space-${roomCode}`);
+
+    peer.on('open', () => {
+        networkStatus.innerText = `ROOM CREATED! CODE: ${roomCode}. AWAITING PLAYER 2...`;
+        hostBtn.disabled = true;
+        joinBtn.disabled = true;
+    });
+
+    peer.on('connection', (incomingConn) => {
+        if (conn) return; 
+        conn = incomingConn;
+        setupChatLink();
+    });
+
+    peer.on('error', (err) => {
+        console.error(err);
+        networkStatus.innerText = "LOBBY ERROR. PLEASE TRY AGAIN.";
+    });
 });
 
+// JOIN AN EXISTING GAME
 joinBtn.addEventListener('click', () => {
     initAudio();
     const targetCode = roomInput.value.trim().toUpperCase();
     if (targetCode.length < 4) return;
     
     networkStatus.innerText = "WARPING INTO LOBBY PANEL...";
-    // Find host peer ID through the cloud coordination registry
-    peer.listAllPeers((peers) => {
-        const fullHostId = peers.find(p => p.slice(0, 4).toUpperCase() === targetCode);
-        if (fullHostId) {
-            conn = peer.connect(fullHostId);
-            isHost = false;
-            vsBanner.innerText = `ROOM: ${targetCode}`;
-            setupChatLink();
-        } else {
-            networkStatus.innerText = "ROOM CODE NOT FOUND. CHECK SPELLING.";
-        }
+    isHost = false;
+    vsBanner.innerText = `ROOM: ${targetCode}`;
+
+    peer = new Peer();
+
+    peer.on('open', () => {
+        // Direct route connection straight to the host node
+        conn = peer.connect(`ar-space-${targetCode}`);
+        setupChatLink();
+    });
+
+    peer.on('error', (err) => {
+        console.error(err);
+        networkStatus.innerText = "CONNECTION FAILED. CHECK CODE.";
     });
 });
 
@@ -139,21 +155,18 @@ function setupChatLink() {
     });
 }
 
-// --- AR DATA SYNCHRONIZATION DRIVERS ---
 function startMatchEngine() {
     setInterval(() => {
         if (!gameActive) return;
-        // Host manages uniform alien instantiation
         if (aliens.length < 5) {
             aliens.push({
                 id: Math.random().toString(36).substring(2, 7),
-                x: 0.1 + Math.random() * 0.8, // Percentage X
+                x: 0.1 + Math.random() * 0.8,
                 y: -0.05,
                 speed: 0.003 + Math.random() * 0.004
             });
         }
         
-        // Host updates time arrays
         timeLeft--;
         if (timeLeft <= 0) {
             gameActive = false;
@@ -174,7 +187,6 @@ function fireLocalLaser() {
     conn.send({ type: 'laser', laser: laserObj });
 }
 
-// --- CORE MEDIAPIPE GESTURE ROUTINES ---
 function onResults(results) {
     canvasElement.width = window.innerWidth;
     canvasElement.height = window.innerHeight;
@@ -187,8 +199,7 @@ function onResults(results) {
         const wrist = landmarks[0];
         const middleBase = landmarks[9];
         
-        // Save hand location purely as a decimal value (0 to 1)
-        localPlayer.x = 1.0 - ((wrist.x + middleBase.x) / 2); // Mirror calculation
+        localPlayer.x = 1.0 - ((wrist.x + middleBase.x) / 2);
         localPlayer.y = (wrist.y + middleBase.y) / 2;
         localPlayer.active = true;
 
@@ -202,33 +213,28 @@ function onResults(results) {
             setTimeout(() => { localPlayer.cooldown = false; }, 350);
         }
         
-        // Instantly transmit input metrics to your teammate's screen
         conn.send({ type: 'input', x: localPlayer.x, y: localPlayer.y, fist: isFist });
     }
 
     renderGraphicsFrame();
 }
 
-// --- DISTRIBUTED GAME RENDERING ENGINE ---
 function renderGraphicsFrame() {
     const w = canvasElement.width;
     const h = canvasElement.height;
 
-    // A. Sync and Compute Aliens
     for (let i = aliens.length - 1; i >= 0; i--) {
         let a = aliens[i];
-        if (isHost && gameActive) a.y += a.speed; // Host holds physics thread control
+        if (isHost && gameActive) a.y += a.speed;
 
-        // Draw alien scaled on local pixel measurements
         canvasCtx.beginPath();
         canvasCtx.ellipse(a.x * w, a.y * h, 30, 13, 0, 0, Math.PI * 2);
         canvasCtx.fillStyle = "rgba(10,10,20,0.8)"; canvasCtx.fill();
         canvasCtx.strokeStyle = "#00ff88"; canvasCtx.lineWidth = 3; canvasCtx.stroke();
 
-        if (isHost && a.y > 1.05) aliens.splice(i, 1); // Delete if off-screen
+        if (isHost && a.y > 1.05) aliens.splice(i, 1);
     }
 
-    // B. Calculate Laser Trajectories
     for (let i = lasers.length - 1; i >= 0; i--) {
         let l = lasers[i];
         l.progress += 0.15;
@@ -241,7 +247,6 @@ function renderGraphicsFrame() {
         canvasCtx.strokeStyle = l.color; canvasCtx.lineWidth = 5; canvasCtx.stroke();
 
         if (l.progress >= 1) {
-            // Collision resolution occurs directly inside Host authority thread
             if (isHost && gameActive) {
                 for (let j = aliens.length - 1; j >= 0; j--) {
                     let a = aliens[j];
@@ -261,7 +266,6 @@ function renderGraphicsFrame() {
         }
     }
 
-    // C. Render Explosions
     for (let i = explosions.length - 1; i >= 0; i--) {
         let e = explosions[i]; e.r += 4;
         canvasCtx.beginPath(); canvasCtx.arc(e.x * w, e.y * h, e.r, 0, Math.PI * 2);
@@ -269,7 +273,6 @@ function renderGraphicsFrame() {
         if (e.r >= 50) explosions.splice(i, 1);
     }
 
-    // D. Render Crosshairs (Cyan for Host, Pink for Guest)
     let p1Data = isHost ? localPlayer : remotePlayer;
     let p2Data = isHost ? remotePlayer : localPlayer;
 
@@ -282,18 +285,15 @@ function renderGraphicsFrame() {
         canvasCtx.strokeStyle = "#ff0055"; canvasCtx.lineWidth = 3; canvasCtx.stroke();
     }
 
-    // Display global runtime stats configuration values
     document.getElementById('p1-score').innerText = scoreP1;
     document.getElementById('p2-score').innerText = scoreP2;
     timerEl.innerText = timeLeft;
 
-    // Host pushes structural frames update packet down the pipe
     if (isHost && gameActive) {
         conn.send({ type: 'sync', aliens, scoreP1, scoreP2, timeLeft });
     }
 }
 
-// --- WINNER EVALUATION ---
 function endMatchDisplay(s1, s2) {
     gameActive = false;
     document.getElementById('final-p1').innerText = s1;
@@ -314,7 +314,6 @@ document.getElementById('restart-btn').addEventListener('click', () => {
     location.reload();
 });
 
-// Setup hardware modules
 setupNetwork();
 const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
 hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
