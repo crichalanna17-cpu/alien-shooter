@@ -1,0 +1,78 @@
+body, html {
+    margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+    background-color: #020204; font-family: 'Orbitron', sans-serif; user-select: none;
+}
+#webcam {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover; transform: scaleX(-1); z-index: 1;
+}
+#gameCanvas {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 2; pointer-events: none;
+}
+
+/* Glassmorphism Lobby Design */
+#lobby-screen {
+    position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+    background: radial-gradient(circle, #0f0c20 0%, #05040a 100%);
+    display: flex; justify-content: center; align-items: center; z-index: 10;
+}
+.lobby-card {
+    background: rgba(20, 20, 35, 0.65); padding: 40px; border-radius: 24px;
+    border: 2px solid #00ffff; box-shadow: 0 0 30px rgba(0,255,255,0.2);
+    text-align: center; max-width: 420px; width: 90%; backdrop-filter: blur(20px);
+}
+.lobby-card h1 { color: #fff; font-size: 1.8rem; margin-bottom: 5px; letter-spacing: 2px; }
+#network-status { color: #00ffaa; font-size: 0.85rem; margin-bottom: 30px; font-weight: bold; }
+
+.lobby-actions { display: flex; flex-direction: column; gap: 15px; }
+.menu-btn {
+    background: linear-gradient(45deg, #00ffff, #ff0055); color: white; border: none;
+    padding: 14px; border-radius: 12px; font-weight: 900; font-size: 1rem;
+    cursor: pointer; letter-spacing: 2px; transition: all 0.2s;
+}
+.menu-btn:disabled { background: #333; color: #777; cursor: not-allowed; }
+.menu-btn:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,255,255,0.4); }
+
+.divider { color: #777; font-size: 0.8rem; font-weight: bold; margin: 5px 0; }
+.join-box { display: flex; flex-direction: column; gap: 10px; }
+#room-input {
+    background: rgba(0,0,0,0.5); border: 2px solid #ff0055; padding: 12px;
+    border-radius: 12px; color: white; font-size: 1.1rem; text-align: center;
+    font-family: inherit; font-weight: bold; letter-spacing: 4px;
+}
+#room-input:focus { outline: none; box-shadow: 0 0 10px #ff0055; }
+
+/* Gameplay HUD Systems */
+#hud-container {
+    position: absolute; top: 20px; left: 3%; width: 94%;
+    display: flex; justify-content: space-between; align-items: center;
+    z-index: 3; pointer-events: none;
+}
+.player-panel { background: rgba(5, 5, 10, 0.75); padding: 12px 25px; border-radius: 16px; backdrop-filter: blur(10px); min-width: 140px; text-align: center; }
+.p1-panel { border: 2px solid #00ffff; }
+.p2-panel { border: 2px solid #ff0055; }
+.player-title { font-size: 0.75rem; font-weight: 900; letter-spacing: 2px; margin-bottom: 3px; }
+.p1-panel .player-title { color: #00ffff; }
+.p2-panel .player-title { color: #ff0055; }
+.score-display { font-size: 2.2rem; font-weight: 900; color: #fff; }
+
+#center-hud { text-align: center; }
+#vs-banner { color: #fff; font-size: 0.75rem; font-weight: bold; letter-spacing: 3px; background: #221a35; padding: 5px 15px; border-radius: 20px; }
+#match-timer { font-size: 3rem; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.4); }
+
+/* Game Over Screen Overlay */
+#game-over-screen {
+    position: absolute; width: 100%; height: 100%; top: 0; left: 0; background: rgba(3,3,6,0.9);
+    display: flex; justify-content: center; align-items: center; z-index: 5; backdrop-filter: blur(15px);
+}
+.game-over-card { background: rgba(15,15,25,0.8); padding: 40px; border-radius: 24px; border: 2px solid #fff; text-align: center; max-width: 400px; width: 90%; }
+.game-over-card h1 { color: white; font-size: 1.8rem; margin: 0 0 20px 0; letter-spacing: 2px; }
+.results-box { background: rgba(0,0,0,0.4); padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+.player-result-row { display: flex; justify-content: space-between; font-size: 1.3rem; font-weight: bold; margin: 8px 0; }
+.p1-res { color: #00ffff; }
+.p2-res { color: #ff0055; }
+#winner-announcement { font-size: 1.8rem; font-weight: 900; margin: 20px 0; text-transform: uppercase; letter-spacing: 1px; }
+#restart-btn { background: #fff; color: #000; border: none; padding: 12px 35px; font-size: 1rem; font-weight: 900; border-radius: 30px; cursor: pointer; letter-spacing: 2px; }
+
+.hidden { display: none !important; }

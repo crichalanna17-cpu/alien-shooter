@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Cross-Device Laser Tag</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+    <div id="lobby-screen">
+        <div class="lobby-card">
+            <h1>AR SPACE SHOWDOWN</h1>
+            <p id="network-status">Connecting to matchmaking network...</p>
+            
+            <div class="lobby-actions">
+                <button id="host-btn" class="menu-btn" disabled>HOST NEW GAME</button>
+                <div class="divider">OR</div>
+                <div class="join-box">
+                    <input type="text" id="room-input" placeholder="ENTER ROOM CODE" maxlength="4">
+                    <button id="join-btn" class="menu-btn" disabled>JOIN GAME</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="hud-container" class="hidden">
+        <div class="player-panel p1-panel">
+            <div class="player-title">PLAYER 1 (HOST)</div>
+            <div id="p1-score" class="score-display">000</div>
+        </div>
+
+        <div id="center-hud">
+            <div id="vs-banner">ROOM: ----</div>
+            <div id="match-timer">60</div>
+        </div>
+
+        <div class="player-panel p2-panel">
+            <div class="player-title">PLAYER 2 (GUEST)</div>
+            <div id="p2-score" class="score-display">000</div>
+        </div>
+    </div>
+
+    <div id="game-over-screen" class="hidden">
+        <div class="game-over-card">
+            <h1>MATCH RESOLVED</h1>
+            <div class="results-box">
+                <div class="player-result-row p1-res"><span>HOST:</span> <span id="final-p1">0</span></div>
+                <div class="player-result-row p2-res"><span>GUEST:</span> <span id="final-p2">0</span></div>
+            </div>
+            <h2 id="winner-announcement">DETERMINING WINNER...</h2>
+            <button id="restart-btn">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <video id="webcam" autoplay playsinline></video>
+    <canvas id="gameCanvas"></canvas>
+
+    <script src="game.js"></script>
+</body>
+</html>
