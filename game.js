@@ -47,7 +47,6 @@ function playSound(type) {
     }
 }
 
-// Generate unique 4-character room code
 function generateRoomCode() {
     const chars = '0123456789ABCDEF';
     let code = '';
@@ -71,7 +70,6 @@ hostBtn.addEventListener('click', () => {
     vsBanner.innerText = `ROOM: ${roomCode}`;
     networkStatus.innerText = "CREATING LOBBY...";
 
-    // Direct ID mapping fix for PeerJS cloud stability
     peer = new Peer(`ar-space-${roomCode}`);
 
     peer.on('open', () => {
@@ -105,7 +103,6 @@ joinBtn.addEventListener('click', () => {
     peer = new Peer();
 
     peer.on('open', () => {
-        // Direct route connection straight to the host node
         conn = peer.connect(`ar-space-${targetCode}`);
         setupChatLink();
     });
@@ -187,6 +184,25 @@ function fireLocalLaser() {
     conn.send({ type: 'laser', laser: laserObj });
 }
 
+// MOBILE BOOST: Touch-to-shoot listener
+canvasElement.addEventListener('click', (e) => {
+    if (!gameActive) return;
+    initAudio();
+
+    // Directly set crosshair target to the tapped spot on the screen
+    localPlayer.x = e.clientX / window.innerWidth;
+    localPlayer.y = e.clientY / window.innerHeight;
+    localPlayer.active = true;
+
+    if (!localPlayer.cooldown) {
+        localPlayer.cooldown = true;
+        fireLocalLaser();
+        setTimeout(() => { localPlayer.cooldown = false; }, 200);
+    }
+
+    conn.send({ type: 'input', x: localPlayer.x, y: localPlayer.y, fist: true });
+});
+
 function onResults(results) {
     canvasElement.width = window.innerWidth;
     canvasElement.height = window.innerHeight;
@@ -205,7 +221,7 @@ function onResults(results) {
 
         let handSize = Math.sqrt(Math.pow(landmarks[5].x - wrist.x, 2) + Math.pow(landmarks[5].y - wrist.y, 2));
         let tipToWrist = Math.sqrt(Math.pow(landmarks[8].x - wrist.x, 2) + Math.pow(landmarks[8].y - wrist.y, 2));
-        let isFist = tipToWrist < handSize * 1.25;
+        let isFist = tipToWrist < handSize * 1.45;
 
         if (isFist && !localPlayer.cooldown) {
             localPlayer.cooldown = true;
@@ -228,7 +244,7 @@ function renderGraphicsFrame() {
         if (isHost && gameActive) a.y += a.speed;
 
         canvasCtx.beginPath();
-        canvasCtx.ellipse(a.x * w, a.y * h, 30, 13, 0, 0, Math.PI * 2);
+        canvasCtx.ellipse(a.x * w, a.y * h, 38, 18, 0, 0, Math.PI * 2);
         canvasCtx.fillStyle = "rgba(10,10,20,0.8)"; canvasCtx.fill();
         canvasCtx.strokeStyle = "#00ff88"; canvasCtx.lineWidth = 3; canvasCtx.stroke();
 
@@ -251,7 +267,8 @@ function renderGraphicsFrame() {
                 for (let j = aliens.length - 1; j >= 0; j--) {
                     let a = aliens[j];
                     let hitDist = Math.sqrt(Math.pow((l.curX - a.x) * w, 2) + Math.pow((l.curY - a.y) * h, 2));
-                    if (hitDist < 45) {
+                    
+                    if (hitDist < 75) {
                         let expObj = { x: a.x, y: a.y, r: 10 };
                         explosions.push(expObj); playSound('hit');
                         conn.send({ type: 'hit', exp: expObj });
@@ -316,7 +333,9 @@ document.getElementById('restart-btn').addEventListener('click', () => {
 
 setupNetwork();
 const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+
+// MOBILE BOOST: Changed modelComplexity from 1 to 0 for lightweight, ultra-fast tracking
+hands.setOptions({ maxNumHands: 1, modelComplexity: 0, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
 hands.onResults(onResults);
 
 const camera = new Camera(videoElement, {
